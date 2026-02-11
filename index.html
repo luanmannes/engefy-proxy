@@ -3,21 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Engefy - Descoberta de APIs (via Proxy)</title>
+    <title>Engefy - Descoberta de APIs v3</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --yellow: #FFD23F;
-            --black: #1a1a1a;
-            --dark: #2a2a2a;
-            --medium: #3a3a3a;
-            --light: #e0e0e0;
-            --white: #fff;
-            --green: #00d084;
-            --orange: #ff9500;
-            --red: #ff3b30;
-            --blue: #007aff;
-        }
+        :root { --yellow: #FFD23F; --black: #1a1a1a; --dark: #2a2a2a; --medium: #3a3a3a; --light: #e0e0e0; --white: #fff; --green: #00d084; --orange: #ff9500; --red: #ff3b30; --blue: #007aff; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Poppins', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
         .header { background: linear-gradient(135deg, var(--dark), var(--medium)); border-bottom: 3px solid var(--yellow); padding: 30px 40px; }
@@ -33,7 +22,7 @@
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn.running { background: var(--yellow); color: var(--black); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        .log { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; background: var(--black); border: 1px solid var(--medium); border-radius: 8px; padding: 15px; max-height: 500px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-all; }
+        .log { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; background: var(--black); border: 1px solid var(--medium); border-radius: 8px; padding: 15px; max-height: 600px; overflow-y: auto; line-height: 1.8; white-space: pre-wrap; word-break: break-all; }
         .log::-webkit-scrollbar { width: 6px; }
         .log::-webkit-scrollbar-thumb { background: var(--yellow); border-radius: 10px; }
         .log .ok { color: var(--green); }
@@ -57,24 +46,20 @@
 </head>
 <body>
     <div class="header">
-        <h1>🔍 ENGEFY — DESCOBERTA DE APIs v2</h1>
-        <p>Agora com proxy Netlify para o Sienge (sem CORS) + scan completo do Pipefy</p>
+        <h1>🔍 ENGEFY — DESCOBERTA DE APIs v3</h1>
+        <p>Scan do Pipefy (corrigido) + Sienge via proxy Netlify</p>
     </div>
-
     <div class="container">
         <div class="instructions">
             <strong>Instruções:</strong><br>
             1. Clique em <strong>"Escanear Pipefy"</strong> para mapear todos os pipes<br>
-            2. Clique em <strong>"Escanear Sienge"</strong> — agora usa o proxy Netlify, sem bloqueio de CORS<br>
+            2. Clique em <strong>"Escanear Sienge"</strong> via proxy<br>
             3. Clique em <strong>"Copiar Relatório"</strong> e cole na conversa com o Claude
         </div>
-
         <div class="status-bar">
             <div class="status-item"><span class="dot" id="dotPipefy"></span><span>Pipefy</span></div>
             <div class="status-item"><span class="dot" id="dotSienge"></span><span>Sienge</span></div>
         </div>
-
-        <!-- PIPEFY -->
         <div class="section">
             <div class="section-header">
                 <span class="section-title">📋 PIPEFY — DESCOBERTA DE PIPES</span>
@@ -84,8 +69,6 @@
                 <div class="log" id="logPipefy">Aguardando scan...</div>
             </div>
         </div>
-
-        <!-- SIENGE -->
         <div class="section">
             <div class="section-header">
                 <span class="section-title">🏗️ SIENGE — DESCOBERTA VIA PROXY</span>
@@ -95,8 +78,6 @@
                 <div class="log" id="logSienge">Aguardando scan...</div>
             </div>
         </div>
-
-        <!-- RELATÓRIO -->
         <div id="reportOutput" class="section">
             <div class="section-header">
                 <span class="section-title">📄 RELATÓRIO PARA O CLAUDE</span>
@@ -109,20 +90,12 @@
     </div>
 
 <script>
-// ============================================
-// CONFIG
-// ============================================
 const PIPEFY_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJQaXBlZnkiLCJpYXQiOjE3NzA4MTY5OTYsImp0aSI6ImUyZWVlMjUxLTgzYzItNGU3ZC04OTFkLTBkZDZhNzM1ZjJhZCIsInN1YiI6MjQxNzA4LCJ1c2VyIjp7ImlkIjoyNDE3MDgsImVtYWlsIjoibHVhbm1hbm5lc0Bjb25zdHJ1dG9yYWVuZ2VmeS5jb20uYnIifSwidXNlcl90eXBlIjoiYXV0aGVudGljYXRlZCJ9.hSHH8ph-26_kViEdMZrrKj7tPrEvioADVdATYuFo0c_nb3ffD8G-luzd0luiAvDkPBQolawdS009s2PCVBpHcw';
-
-// PROXY URL - usa a mesma origem (deploy no mesmo Netlify)
 const PROXY_BASE = '/.netlify/functions/sienge-proxy';
-
 let pipefyReport = null;
 let siengeReport = null;
 
-// ============================================
-// PIPEFY
-// ============================================
+// ===== PIPEFY =====
 function logP(msg, cls = '') {
     const el = document.getElementById('logPipefy');
     el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
@@ -151,121 +124,126 @@ async function scanPipefy() {
         logP('══════════════════════════════════════', 'title');
         logP('');
 
-        // 1. Usuário e orgs
+        // 1. Buscar info do user
         logP('🔑 Consultando usuário...', 'info');
-        const meData = await gql(`{ me { id name email organizations { id name } } }`);
+        const meData = await gql(`{ me { id name email } }`);
         if (meData.errors) throw new Error(JSON.stringify(meData.errors));
         const me = meData.data.me;
         logP(`✅ ${me.name} (${me.email})`, 'ok');
 
+        // 2. Usar o pipe conhecido (734128) para descobrir o org ID
+        logP('\n🔍 Descobrindo organização via pipe 734128...', 'info');
+        const pipeOrgData = await gql(`{ pipe(id: 734128) { id name organization { id name } } }`);
+        if (pipeOrgData.errors) throw new Error(JSON.stringify(pipeOrgData.errors));
+        const orgId = pipeOrgData.data.pipe.organization.id;
+        const orgName = pipeOrgData.data.pipe.organization.name;
+        logP(`✅ Organização: ${orgName} (ID: ${orgId})`, 'ok');
+
+        // 3. Listar todos os pipes da organização
+        logP('\n📋 Buscando todos os pipes da organização...', 'info');
+        const orgData = await gql(`{
+            organization(id: ${orgId}) {
+                pipes {
+                    id
+                    name
+                    cards_count
+                    members_count
+                    phases { id name cards_count }
+                    start_form_fields { id label type }
+                }
+            }
+        }`);
+
+        if (orgData.errors) throw new Error(JSON.stringify(orgData.errors));
+        const pipes = orgData.data.organization.pipes;
+        logP(`✅ ${pipes.length} pipes encontrados!`, 'ok');
+
         const allPipes = [];
 
-        for (const org of me.organizations) {
-            logP(`\n🏢 Organização: ${org.name} (ID: ${org.id})`, 'info');
+        for (const pipe of pipes) {
+            logP(`\n────────────────────────────────`, 'dim');
+            logP(`📌 "${pipe.name}" [ID: ${pipe.id}]`, 'title');
+            logP(`   Cards: ${pipe.cards_count} | Membros: ${pipe.members_count}`, '');
 
-            const pipesData = await gql(`{
-                organization(id: ${org.id}) {
-                    pipes {
-                        id name icon members_count cards_count
-                        phases { id name cards_count }
-                        start_form_fields { id label type }
-                    }
-                }
-            }`);
-
-            if (pipesData.errors) {
-                logP(`⚠️ Erro: ${JSON.stringify(pipesData.errors)}`, 'warn');
-                continue;
+            if (pipe.phases && pipe.phases.length > 0) {
+                logP(`   📂 Fases:`, '');
+                pipe.phases.forEach(p => logP(`      • ${p.name} (${p.cards_count} cards) [${p.id}]`, 'dim'));
             }
 
-            const pipes = pipesData.data.organization.pipes;
-            logP(`✅ ${pipes.length} pipes encontrados`, 'ok');
+            if (pipe.start_form_fields && pipe.start_form_fields.length > 0) {
+                logP(`   📝 Campos Formulário:`, '');
+                pipe.start_form_fields.forEach(f => logP(`      • "${f.label}" [${f.type}] [${f.id}]`, 'dim'));
+            }
 
-            for (const pipe of pipes) {
-                logP(`\n────────────────────────────────`, 'dim');
-                logP(`📌 "${pipe.name}" [ID: ${pipe.id}]`, 'title');
-                logP(`   Cards: ${pipe.cards_count} | Membros: ${pipe.members_count}`, '');
+            // Buscar campos das fases + amostra de 1 card
+            let phaseFields = {};
+            let sampleFields = [];
 
-                if (pipe.phases && pipe.phases.length > 0) {
-                    logP(`   📂 Fases:`, '');
-                    pipe.phases.forEach(p => logP(`      • ${p.name} (${p.cards_count} cards) [${p.id}]`, 'dim'));
-                }
-
-                if (pipe.start_form_fields && pipe.start_form_fields.length > 0) {
-                    logP(`   📝 Campos Formulário:`, '');
-                    pipe.start_form_fields.forEach(f => logP(`      • "${f.label}" [${f.type}] [${f.id}]`, 'dim'));
-                }
-
-                // Buscar campos das fases + amostra
-                let phaseFields = {};
-                let sampleFields = [];
-
-                try {
-                    const detail = await gql(`{
-                        pipe(id: ${pipe.id}) {
-                            phases {
-                                name
-                                fields { id label type }
-                                cards(first: 1) {
-                                    edges {
-                                        node {
-                                            title
-                                            fields { name value field { id } }
-                                        }
+            try {
+                const detail = await gql(`{
+                    pipe(id: ${pipe.id}) {
+                        phases {
+                            name
+                            fields { id label type }
+                            cards(first: 1) {
+                                edges {
+                                    node {
+                                        title
+                                        fields { name value field { id } }
                                     }
                                 }
                             }
                         }
-                    }`);
+                    }
+                }`);
 
-                    if (detail.data && detail.data.pipe) {
-                        detail.data.pipe.phases.forEach(phase => {
-                            if (phase.fields && phase.fields.length > 0) {
-                                phaseFields[phase.name] = phase.fields;
-                            }
-                            if (phase.cards && phase.cards.edges.length > 0) {
-                                phase.cards.edges[0].node.fields.forEach(f => {
-                                    if (!sampleFields.find(sf => sf.name === f.name)) {
-                                        sampleFields.push(f);
-                                    }
-                                });
-                            }
-                        });
-
-                        for (const [pname, fields] of Object.entries(phaseFields)) {
-                            logP(`   🏷️ Campos fase "${pname}":`, '');
-                            fields.forEach(f => logP(`      • "${f.label}" [${f.type}] [${f.id}]`, 'dim'));
+                if (detail.data && detail.data.pipe) {
+                    detail.data.pipe.phases.forEach(phase => {
+                        if (phase.fields && phase.fields.length > 0) {
+                            phaseFields[phase.name] = phase.fields;
                         }
-
-                        if (sampleFields.length > 0) {
-                            logP(`   📊 Amostra (1º card):`, '');
-                            sampleFields.forEach(f => {
-                                const v = f.value ? (f.value.length > 80 ? f.value.substring(0, 80) + '...' : f.value) : '(vazio)';
-                                logP(`      • "${f.name}" = "${v}"`, 'dim');
+                        if (phase.cards && phase.cards.edges.length > 0) {
+                            phase.cards.edges[0].node.fields.forEach(f => {
+                                if (!sampleFields.find(sf => sf.name === f.name)) {
+                                    sampleFields.push(f);
+                                }
                             });
                         }
-                    }
-                } catch (e) {
-                    logP(`   ⚠️ Erro detalhes: ${e.message}`, 'warn');
-                }
+                    });
 
-                allPipes.push({
-                    id: pipe.id, name: pipe.name,
-                    cards_count: pipe.cards_count,
-                    members_count: pipe.members_count,
-                    phases: pipe.phases,
-                    start_form_fields: pipe.start_form_fields,
-                    _phaseFields: phaseFields,
-                    _sampleFields: sampleFields
-                });
+                    for (const [pname, fields] of Object.entries(phaseFields)) {
+                        logP(`   🏷️ Campos fase "${pname}":`, '');
+                        fields.forEach(f => logP(`      • "${f.label}" [${f.type}] [${f.id}]`, 'dim'));
+                    }
+
+                    if (sampleFields.length > 0) {
+                        logP(`   📊 Amostra (1º card):`, '');
+                        sampleFields.forEach(f => {
+                            const v = f.value ? (f.value.length > 80 ? f.value.substring(0, 80) + '...' : f.value) : '(vazio)';
+                            logP(`      • "${f.name}" = "${v}"`, 'dim');
+                        });
+                    }
+                }
+            } catch (e) {
+                logP(`   ⚠️ Erro detalhes: ${e.message}`, 'warn');
             }
+
+            allPipes.push({
+                id: pipe.id, name: pipe.name,
+                cards_count: pipe.cards_count,
+                members_count: pipe.members_count,
+                phases: pipe.phases,
+                start_form_fields: pipe.start_form_fields,
+                _phaseFields: phaseFields,
+                _sampleFields: sampleFields
+            });
         }
 
         logP(`\n══════════════════════════════════════`, 'ok');
         logP(`✅ COMPLETO: ${allPipes.length} pipes mapeados`, 'ok');
         logP(`══════════════════════════════════════`, 'ok');
 
-        pipefyReport = { user: me, pipes: allPipes };
+        pipefyReport = { user: me, orgId, orgName, pipes: allPipes };
         dot.className = 'dot ok';
         btn.textContent = '✅ Concluído';
         btn.className = 'btn';
@@ -279,9 +257,7 @@ async function scanPipefy() {
     }
 }
 
-// ============================================
-// SIENGE (VIA PROXY)
-// ============================================
+// ===== SIENGE =====
 function logS(msg, cls = '') {
     const el = document.getElementById('logSienge');
     el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
@@ -290,33 +266,25 @@ function logS(msg, cls = '') {
 
 async function testEndpoint(path, desc) {
     try {
-        // Separa path e query params
         const [basePath, queryString] = path.split('?');
         let url = `${PROXY_BASE}?endpoint=${encodeURIComponent(basePath)}`;
-        if (queryString) {
-            url += '&' + queryString;
-        }
+        if (queryString) url += '&' + queryString;
 
         const res = await fetch(url);
         const status = res.status;
         let data = null;
-
         try { data = await res.json(); } catch { try { data = await res.text(); } catch {} }
 
         if (status === 200) {
-            let count = '?';
-            let sample = null;
-
+            let count = '?', sample = null;
             if (data) {
                 if (data.resultSetMetadata && data.resultSetMetadata.count !== undefined) count = data.resultSetMetadata.count;
                 else if (Array.isArray(data)) count = data.length;
                 else if (data.results && Array.isArray(data.results)) count = data.results.length;
-
                 if (Array.isArray(data) && data.length > 0) sample = data[0];
                 else if (data.results && data.results.length > 0) sample = data.results[0];
                 else if (typeof data === 'object' && !data.resultSetMetadata && !data.error) sample = data;
             }
-
             logS(`✅ ${desc}`, 'ok');
             logS(`   GET ${path} → ${status} OK (${count} registros)`, 'ok');
             if (sample) {
@@ -325,24 +293,21 @@ async function testEndpoint(path, desc) {
                 logS(`   Amostra: ${s.length < 600 ? s : s.substring(0, 600) + '...'}`, 'dim');
             }
             return { path, desc, status: 'ok', httpStatus: status, count, sample, rawData: data };
-
-        } else if (status === 401 || status === 403) {
-            logS(`🔒 ${desc}: ${path} → ${status} SEM PERMISSÃO`, 'warn');
+        } else if (status === 401) {
+            logS(`🔒 ${desc}: → ${status} CREDENCIAIS INVÁLIDAS`, 'err');
+            return { path, desc, status: 'auth_error', httpStatus: status };
+        } else if (status === 403) {
+            logS(`🔒 ${desc}: → ${status} SEM PERMISSÃO`, 'warn');
             return { path, desc, status: 'forbidden', httpStatus: status };
-
         } else if (status === 404) {
-            logS(`❌ ${desc}: ${path} → ${status} NÃO ENCONTRADO`, 'err');
+            logS(`❌ ${desc}: → ${status} NÃO ENCONTRADO`, 'err');
             return { path, desc, status: 'not_found', httpStatus: status };
-
         } else {
-            logS(`⚠️ ${desc}: ${path} → ${status}`, 'warn');
-            const errMsg = data && data.message ? data.message : '';
-            if (errMsg) logS(`   Mensagem: ${errMsg}`, 'dim');
+            logS(`⚠️ ${desc}: → ${status}`, 'warn');
             return { path, desc, status: 'error', httpStatus: status, data };
         }
-
     } catch (err) {
-        logS(`❌ ${desc}: ${path} → ERRO: ${err.message}`, 'err');
+        logS(`❌ ${desc}: ERRO: ${err.message}`, 'err');
         return { path, desc, status: 'error', error: err.message };
     }
 }
@@ -357,17 +322,32 @@ async function scanSienge() {
     logS('══════════════════════════════════════', 'title');
     logS('  ESCANEANDO SIENGE (VIA PROXY)', 'title');
     logS('══════════════════════════════════════', 'title');
-    logS(`🔗 Proxy: ${window.location.origin}${PROXY_BASE}`, 'info');
     logS('');
 
-    // Teste de conectividade primeiro
     logS('🔌 Testando conexão com proxy...', 'info');
     try {
-        const testRes = await fetch(`${PROXY_BASE}?endpoint=/building-projects&limit=1`);
-        logS(`✅ Proxy respondeu: HTTP ${testRes.status}`, testRes.status === 200 ? 'ok' : 'warn');
+        const t = await fetch(`${PROXY_BASE}?endpoint=/building-projects&limit=1`);
+        const tData = await t.json();
+        logS(`Proxy respondeu: HTTP ${t.status} - ${JSON.stringify(tData).substring(0, 200)}`, t.status === 200 ? 'ok' : 'warn');
+        if (t.status === 401 || (tData && tData.message && tData.message.includes('authentication'))) {
+            logS('', '');
+            logS('⚠️ CREDENCIAIS DO SIENGE INVÁLIDAS!', 'err');
+            logS('Verifique no Sienge → Painel de Integrações:', 'err');
+            logS('  • Usuário: engefy-dash', 'err');
+            logS('  • Senha pode ter expirado/mudado', 'err');
+            logS('', '');
+            logS('O proxy está funcionando, mas o Sienge rejeitou as credenciais.', 'warn');
+            logS('Atualize a senha no arquivo sienge-proxy.js no GitHub.', 'warn');
+            
+            siengeReport = { results: [], summary: { ok: 0, authError: true, note: 'Credenciais inválidas' } };
+            dot.className = 'dot fail';
+            btn.textContent = '🔒 Credenciais inválidas';
+            btn.className = 'btn'; btn.disabled = false;
+            generateReport();
+            return;
+        }
     } catch (e) {
-        logS(`❌ Proxy não respondeu! Verifique se o deploy foi feito.`, 'err');
-        logS(`   Erro: ${e.message}`, 'err');
+        logS(`❌ Proxy offline: ${e.message}`, 'err');
         dot.className = 'dot fail';
         btn.textContent = '❌ Proxy offline';
         btn.className = 'btn'; btn.disabled = false;
@@ -376,14 +356,11 @@ async function scanSienge() {
     logS('');
 
     const endpoints = [
-        // OBRAS
-        { path: '/building-projects?limit=100', desc: 'Obras / Empreendimentos' },
+        { path: '/building-projects?limit=100', desc: 'Obras' },
         { path: '/enterprises?limit=100', desc: 'Empreendimentos' },
-        // ORÇAMENTOS
-        { path: '/budget-categories?limit=50', desc: 'Categorias de Orçamento' },
+        { path: '/budget-categories?limit=50', desc: 'Categorias Orçamento' },
         { path: '/budgets?limit=50', desc: 'Orçamentos' },
-        { path: '/cost-estimates?limit=50', desc: 'Estimativas de Custo' },
-        // FINANCEIRO
+        { path: '/cost-estimates?limit=50', desc: 'Estimativas Custo' },
         { path: '/bills?limit=10', desc: 'Contas a Pagar' },
         { path: '/receivable-bills?limit=10', desc: 'Contas a Receber' },
         { path: '/payments?limit=10', desc: 'Pagamentos' },
@@ -391,71 +368,51 @@ async function scanSienge() {
         { path: '/bank-accounts?limit=50', desc: 'Contas Bancárias' },
         { path: '/cost-centers?limit=50', desc: 'Centros de Custo' },
         { path: '/chart-accounts?limit=50', desc: 'Plano de Contas' },
-        // COMPRAS
         { path: '/purchase-orders?limit=10', desc: 'Pedidos de Compra' },
+        { path: '/purchase-requests?limit=10', desc: 'Solicitações de Compra' },
         { path: '/quotations?limit=10', desc: 'Cotações' },
         { path: '/suppliers?limit=10', desc: 'Fornecedores' },
-        { path: '/material-requisitions?limit=10', desc: 'Requisições de Material' },
-        { path: '/products?limit=10', desc: 'Produtos' },
-        // CONTRATOS
         { path: '/contracts?limit=10', desc: 'Contratos' },
-        // MEDIÇÕES
         { path: '/measurements?limit=10', desc: 'Medições' },
-        // PESSOAS
         { path: '/employees?limit=10', desc: 'Funcionários' },
         { path: '/departments?limit=50', desc: 'Departamentos' },
-        // NOTAS FISCAIS
         { path: '/invoices?limit=10', desc: 'Notas Fiscais' },
         { path: '/service-invoices?limit=10', desc: 'NFs de Serviço' },
-        // ENGENHARIA
-        { path: '/tasks?limit=10', desc: 'Tarefas / Cronograma' },
-        { path: '/work-stages?limit=10', desc: 'Etapas de Obra' },
-        { path: '/diary-entries?limit=10', desc: 'Diário de Obra' },
-        // AUXILIARES
         { path: '/units?limit=50', desc: 'Unidades' },
         { path: '/indexes?limit=50', desc: 'Índices' },
         { path: '/document-types?limit=50', desc: 'Tipos de Documento' },
-        // RELATÓRIOS DE CUSTO (savings)
-        { path: '/cost-reports?limit=10', desc: 'Relatórios de Custo' },
-        { path: '/progress-reports?limit=10', desc: 'Relatórios de Progresso' },
+        { path: '/customers?limit=10', desc: 'Clientes' },
+        { path: '/creditors?limit=10', desc: 'Credores' },
     ];
 
     const results = [];
-
     for (let i = 0; i < endpoints.length; i++) {
         const ep = endpoints[i];
         logS(`[${i + 1}/${endpoints.length}] ${ep.desc}...`, 'info');
-        const r = await testEndpoint(ep.path, ep.desc);
-        results.push(r);
+        results.push(await testEndpoint(ep.path, ep.desc));
         logS('', '');
         await new Promise(r => setTimeout(r, 300));
     }
 
-    // Resumo
     const ok = results.filter(r => r.status === 'ok');
+    const auth = results.filter(r => r.status === 'auth_error');
     const forbidden = results.filter(r => r.status === 'forbidden');
     const notFound = results.filter(r => r.status === 'not_found');
-    const errors = results.filter(r => r.status === 'error');
 
-    logS('══════════════════════════════════════', 'title');
-    logS('  RESUMO SIENGE', 'title');
     logS('══════════════════════════════════════', 'title');
     logS(`✅ Acessíveis: ${ok.length}`, 'ok');
-    logS(`🔒 Sem permissão: ${forbidden.length}`, 'warn');
-    logS(`❌ Não encontrados: ${notFound.length}`, 'err');
-    logS(`⚠️ Outros erros: ${errors.length}`, errors.length > 0 ? 'warn' : 'dim');
+    logS(`🔒 Auth erro: ${auth.length}`, auth.length > 0 ? 'err' : 'dim');
+    logS(`🔒 Sem permissão: ${forbidden.length}`, forbidden.length > 0 ? 'warn' : 'dim');
+    logS(`❌ Não encontrados: ${notFound.length}`, notFound.length > 0 ? 'err' : 'dim');
 
-    siengeReport = { results, summary: { ok: ok.length, forbidden: forbidden.length, notFound: notFound.length, errors: errors.length } };
-
+    siengeReport = { results, summary: { ok: ok.length, authError: auth.length, forbidden: forbidden.length, notFound: notFound.length } };
     dot.className = ok.length > 0 ? 'dot ok' : 'dot fail';
     btn.textContent = '✅ Concluído';
     btn.className = 'btn';
     generateReport();
 }
 
-// ============================================
-// RELATÓRIO
-// ============================================
+// ===== RELATÓRIO =====
 function generateReport() {
     if (!pipefyReport && !siengeReport) return;
     document.getElementById('reportOutput').style.display = 'block';
@@ -471,13 +428,13 @@ function generateReport() {
         r += '│          PIPEFY - PIPES              │\n';
         r += '└──────────────────────────────────────┘\n\n';
         r += `Usuário: ${pipefyReport.user.name} (${pipefyReport.user.email})\n`;
+        r += `Organização: ${pipefyReport.orgName} (ID: ${pipefyReport.orgId})\n`;
         r += `Total de pipes: ${pipefyReport.pipes.length}\n\n`;
 
         pipefyReport.pipes.forEach(pipe => {
             r += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
             r += `PIPE: "${pipe.name}" [ID: ${pipe.id}]\n`;
             r += `  Cards: ${pipe.cards_count} | Membros: ${pipe.members_count}\n`;
-
             if (pipe.phases) {
                 r += `  FASES:\n`;
                 pipe.phases.forEach(p => r += `    • ${p.name} (${p.cards_count} cards) [ID: ${p.id}]\n`);
@@ -507,44 +464,44 @@ function generateReport() {
         r += '┌──────────────────────────────────────┐\n';
         r += '│       SIENGE - ENDPOINTS (PROXY)     │\n';
         r += '└──────────────────────────────────────┘\n\n';
-        r += `Acessíveis: ${siengeReport.summary.ok}\n`;
-        r += `Sem permissão: ${siengeReport.summary.forbidden}\n`;
-        r += `Não encontrados: ${siengeReport.summary.notFound}\n`;
-        r += `Erros: ${siengeReport.summary.errors}\n\n`;
 
-        const ok = siengeReport.results.filter(r => r.status === 'ok');
-        if (ok.length > 0) {
-            r += `ENDPOINTS ACESSÍVEIS:\n`;
-            ok.forEach(ep => {
-                r += `  ✅ ${ep.desc}: GET ${ep.path} (${ep.count} registros)\n`;
-                if (ep.sample) {
-                    r += `     Campos: ${Object.keys(ep.sample).join(', ')}\n`;
-                    const s = JSON.stringify(ep.sample);
-                    if (s.length < 400) r += `     Amostra: ${s}\n`;
-                }
-            });
-            r += '\n';
-        }
+        if (siengeReport.summary.authError === true) {
+            r += '⚠️ CREDENCIAIS INVÁLIDAS - Sienge rejeitou autenticação\n';
+            r += 'Usuário: engefy-dash\n';
+            r += 'Ação: Verificar/atualizar senha no Painel de Integrações do Sienge\n\n';
+        } else {
+            r += `Acessíveis: ${siengeReport.summary.ok}\n`;
+            r += `Auth erro: ${siengeReport.summary.authError}\n`;
+            r += `Sem permissão: ${siengeReport.summary.forbidden}\n`;
+            r += `Não encontrados: ${siengeReport.summary.notFound}\n\n`;
 
-        const forbidden = siengeReport.results.filter(r => r.status === 'forbidden');
-        if (forbidden.length > 0) {
-            r += `SEM PERMISSÃO:\n`;
-            forbidden.forEach(ep => r += `  🔒 ${ep.desc}: GET ${ep.path} → ${ep.httpStatus}\n`);
-            r += '\n';
-        }
+            const ok = siengeReport.results.filter(r => r.status === 'ok');
+            if (ok.length > 0) {
+                r += `ENDPOINTS ACESSÍVEIS:\n`;
+                ok.forEach(ep => {
+                    r += `  ✅ ${ep.desc}: GET ${ep.path} (${ep.count} registros)\n`;
+                    if (ep.sample) {
+                        r += `     Campos: ${Object.keys(ep.sample).join(', ')}\n`;
+                        const s = JSON.stringify(ep.sample);
+                        if (s.length < 400) r += `     Amostra: ${s}\n`;
+                    }
+                });
+                r += '\n';
+            }
 
-        const notFound = siengeReport.results.filter(r => r.status === 'not_found');
-        if (notFound.length > 0) {
-            r += `NÃO ENCONTRADOS:\n`;
-            notFound.forEach(ep => r += `  ❌ ${ep.desc}: GET ${ep.path} → ${ep.httpStatus}\n`);
-            r += '\n';
-        }
+            const forbidden = siengeReport.results.filter(r => r.status === 'forbidden');
+            if (forbidden.length > 0) {
+                r += `SEM PERMISSÃO:\n`;
+                forbidden.forEach(ep => r += `  🔒 ${ep.desc}: ${ep.path} → ${ep.httpStatus}\n`);
+                r += '\n';
+            }
 
-        const errors = siengeReport.results.filter(r => r.status === 'error');
-        if (errors.length > 0) {
-            r += `ERROS:\n`;
-            errors.forEach(ep => r += `  ⚠️ ${ep.desc}: GET ${ep.path} → ${ep.httpStatus || ep.error}\n`);
-            r += '\n';
+            const notFound = siengeReport.results.filter(r => r.status === 'not_found');
+            if (notFound.length > 0) {
+                r += `NÃO ENCONTRADOS:\n`;
+                notFound.forEach(ep => r += `  ❌ ${ep.desc}: ${ep.path}\n`);
+                r += '\n';
+            }
         }
     }
 
