@@ -1,6 +1,6 @@
 const SIENGE_BASE = 'https://api.sienge.com.br/engefy/public/api/v1';
 const SIENGE_USER = 'engefy-dash';
-const SIENGE_PASS = 'QdUOY0Lgwmp7ggyQKgJrNM50PF44Zxi3';
+const SIENGE_PASS = 'pQqQyZHTMCggkDe2CGauYPiLTL28CF15';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
