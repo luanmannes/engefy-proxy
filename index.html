@@ -47,7 +47,7 @@
 <body>
     <div class="header">
         <h1>🔍 ENGEFY — DESCOBERTA DE APIs v3</h1>
-        <p>Scan do Pipefy (corrigido) + Sienge via proxy Netlify</p>
+        <p>Scan do Pipefy + Sienge via proxy Netlify</p>
     </div>
     <div class="container">
         <div class="instructions">
@@ -95,7 +95,6 @@ const PROXY_BASE = '/.netlify/functions/sienge-proxy';
 let pipefyReport = null;
 let siengeReport = null;
 
-// ===== PIPEFY =====
 function logP(msg, cls = '') {
     const el = document.getElementById('logPipefy');
     el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
@@ -124,30 +123,26 @@ async function scanPipefy() {
         logP('══════════════════════════════════════', 'title');
         logP('');
 
-        // 1. Buscar info do user
         logP('🔑 Consultando usuário...', 'info');
         const meData = await gql(`{ me { id name email } }`);
         if (meData.errors) throw new Error(JSON.stringify(meData.errors));
         const me = meData.data.me;
         logP(`✅ ${me.name} (${me.email})`, 'ok');
 
-        // 2. Usar o pipe conhecido (734128) para descobrir o org ID
-        logP('\n🔍 Descobrindo organização via pipe 734128...', 'info');
+        logP('\\n🔍 Descobrindo organização via pipe 734128...', 'info');
         const pipeOrgData = await gql(`{ pipe(id: 734128) { id name organization { id name } } }`);
         if (pipeOrgData.errors) throw new Error(JSON.stringify(pipeOrgData.errors));
         const orgId = pipeOrgData.data.pipe.organization.id;
         const orgName = pipeOrgData.data.pipe.organization.name;
         logP(`✅ Organização: ${orgName} (ID: ${orgId})`, 'ok');
 
-        // 3. Listar todos os pipes da organização
-        logP('\n📋 Buscando todos os pipes da organização...', 'info');
+        logP('\\n📋 Buscando todos os pipes...', 'info');
         const orgData = await gql(`{
             organization(id: ${orgId}) {
                 pipes {
                     id
                     name
                     cards_count
-                    members_count
                     phases { id name cards_count }
                     start_form_fields { id label type }
                 }
@@ -161,9 +156,9 @@ async function scanPipefy() {
         const allPipes = [];
 
         for (const pipe of pipes) {
-            logP(`\n────────────────────────────────`, 'dim');
+            logP(`\\n────────────────────────────────`, 'dim');
             logP(`📌 "${pipe.name}" [ID: ${pipe.id}]`, 'title');
-            logP(`   Cards: ${pipe.cards_count} | Membros: ${pipe.members_count}`, '');
+            logP(`   Cards: ${pipe.cards_count}`, '');
 
             if (pipe.phases && pipe.phases.length > 0) {
                 logP(`   📂 Fases:`, '');
@@ -175,7 +170,6 @@ async function scanPipefy() {
                 pipe.start_form_fields.forEach(f => logP(`      • "${f.label}" [${f.type}] [${f.id}]`, 'dim'));
             }
 
-            // Buscar campos das fases + amostra de 1 card
             let phaseFields = {};
             let sampleFields = [];
 
@@ -231,7 +225,6 @@ async function scanPipefy() {
             allPipes.push({
                 id: pipe.id, name: pipe.name,
                 cards_count: pipe.cards_count,
-                members_count: pipe.members_count,
                 phases: pipe.phases,
                 start_form_fields: pipe.start_form_fields,
                 _phaseFields: phaseFields,
@@ -239,7 +232,7 @@ async function scanPipefy() {
             });
         }
 
-        logP(`\n══════════════════════════════════════`, 'ok');
+        logP(`\\n══════════════════════════════════════`, 'ok');
         logP(`✅ COMPLETO: ${allPipes.length} pipes mapeados`, 'ok');
         logP(`══════════════════════════════════════`, 'ok');
 
@@ -250,14 +243,13 @@ async function scanPipefy() {
         generateReport();
 
     } catch (err) {
-        logP(`\n❌ ERRO: ${err.message}`, 'err');
+        logP(`\\n❌ ERRO: ${err.message}`, 'err');
         dot.className = 'dot fail';
         btn.textContent = '❌ Erro - Tentar Novamente';
         btn.className = 'btn'; btn.disabled = false;
     }
 }
 
-// ===== SIENGE =====
 function logS(msg, cls = '') {
     const el = document.getElementById('logSienge');
     el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
@@ -286,7 +278,7 @@ async function testEndpoint(path, desc) {
                 else if (typeof data === 'object' && !data.resultSetMetadata && !data.error) sample = data;
             }
             logS(`✅ ${desc}`, 'ok');
-            logS(`   GET ${path} → ${status} OK (${count} registros)`, 'ok');
+            logS(`   GET ${path} → ${status} (${count} registros)`, 'ok');
             if (sample) {
                 logS(`   Campos: ${Object.keys(sample).join(', ')}`, 'dim');
                 const s = JSON.stringify(sample, null, 2);
@@ -324,22 +316,16 @@ async function scanSienge() {
     logS('══════════════════════════════════════', 'title');
     logS('');
 
-    logS('🔌 Testando conexão com proxy...', 'info');
+    logS('🔌 Testando conexão...', 'info');
     try {
         const t = await fetch(`${PROXY_BASE}?endpoint=/building-projects&limit=1`);
         const tData = await t.json();
-        logS(`Proxy respondeu: HTTP ${t.status} - ${JSON.stringify(tData).substring(0, 200)}`, t.status === 200 ? 'ok' : 'warn');
+        logS(`Proxy: HTTP ${t.status} - ${JSON.stringify(tData).substring(0, 200)}`, t.status === 200 ? 'ok' : 'warn');
         if (t.status === 401 || (tData && tData.message && tData.message.includes('authentication'))) {
-            logS('', '');
-            logS('⚠️ CREDENCIAIS DO SIENGE INVÁLIDAS!', 'err');
-            logS('Verifique no Sienge → Painel de Integrações:', 'err');
-            logS('  • Usuário: engefy-dash', 'err');
-            logS('  • Senha pode ter expirado/mudado', 'err');
-            logS('', '');
-            logS('O proxy está funcionando, mas o Sienge rejeitou as credenciais.', 'warn');
-            logS('Atualize a senha no arquivo sienge-proxy.js no GitHub.', 'warn');
-            
-            siengeReport = { results: [], summary: { ok: 0, authError: true, note: 'Credenciais inválidas' } };
+            logS('\\n⚠️ CREDENCIAIS DO SIENGE INVÁLIDAS!', 'err');
+            logS('Verifique no Sienge → Painel de Integrações', 'err');
+            logS('Atualize a senha no sienge-proxy.js no GitHub', 'warn');
+            siengeReport = { results: [], summary: { ok: 0, authError: true } };
             dot.className = 'dot fail';
             btn.textContent = '🔒 Credenciais inválidas';
             btn.className = 'btn'; btn.disabled = false;
@@ -379,8 +365,6 @@ async function scanSienge() {
         { path: '/invoices?limit=10', desc: 'Notas Fiscais' },
         { path: '/service-invoices?limit=10', desc: 'NFs de Serviço' },
         { path: '/units?limit=50', desc: 'Unidades' },
-        { path: '/indexes?limit=50', desc: 'Índices' },
-        { path: '/document-types?limit=50', desc: 'Tipos de Documento' },
         { path: '/customers?limit=10', desc: 'Clientes' },
         { path: '/creditors?limit=10', desc: 'Credores' },
     ];
@@ -412,113 +396,110 @@ async function scanSienge() {
     generateReport();
 }
 
-// ===== RELATÓRIO =====
 function generateReport() {
     if (!pipefyReport && !siengeReport) return;
     document.getElementById('reportOutput').style.display = 'block';
 
     let r = '';
-    r += '══════════════════════════════════════════\n';
-    r += '  RELATÓRIO DE DESCOBERTA - ENGEFY APIs\n';
-    r += `  Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
-    r += '══════════════════════════════════════════\n\n';
+    r += '══════════════════════════════════════════\\n';
+    r += '  RELATÓRIO DE DESCOBERTA - ENGEFY APIs\\n';
+    r += '  Gerado em: ' + new Date().toLocaleString('pt-BR') + '\\n';
+    r += '══════════════════════════════════════════\\n\\n';
 
     if (pipefyReport) {
-        r += '┌──────────────────────────────────────┐\n';
-        r += '│          PIPEFY - PIPES              │\n';
-        r += '└──────────────────────────────────────┘\n\n';
-        r += `Usuário: ${pipefyReport.user.name} (${pipefyReport.user.email})\n`;
-        r += `Organização: ${pipefyReport.orgName} (ID: ${pipefyReport.orgId})\n`;
-        r += `Total de pipes: ${pipefyReport.pipes.length}\n\n`;
+        r += '┌──────────────────────────────────────┐\\n';
+        r += '│          PIPEFY - PIPES              │\\n';
+        r += '└──────────────────────────────────────┘\\n\\n';
+        r += 'Usuário: ' + pipefyReport.user.name + ' (' + pipefyReport.user.email + ')\\n';
+        r += 'Organização: ' + pipefyReport.orgName + ' (ID: ' + pipefyReport.orgId + ')\\n';
+        r += 'Total de pipes: ' + pipefyReport.pipes.length + '\\n\\n';
 
-        pipefyReport.pipes.forEach(pipe => {
-            r += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            r += `PIPE: "${pipe.name}" [ID: ${pipe.id}]\n`;
-            r += `  Cards: ${pipe.cards_count} | Membros: ${pipe.members_count}\n`;
+        pipefyReport.pipes.forEach(function(pipe) {
+            r += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n';
+            r += 'PIPE: "' + pipe.name + '" [ID: ' + pipe.id + ']\\n';
+            r += '  Cards: ' + pipe.cards_count + '\\n';
             if (pipe.phases) {
-                r += `  FASES:\n`;
-                pipe.phases.forEach(p => r += `    • ${p.name} (${p.cards_count} cards) [ID: ${p.id}]\n`);
+                r += '  FASES:\\n';
+                pipe.phases.forEach(function(p) { r += '    • ' + p.name + ' (' + p.cards_count + ' cards) [ID: ' + p.id + ']\\n'; });
             }
             if (pipe.start_form_fields && pipe.start_form_fields.length > 0) {
-                r += `  CAMPOS FORMULÁRIO:\n`;
-                pipe.start_form_fields.forEach(f => r += `    • "${f.label}" [${f.type}] [ID: ${f.id}]\n`);
+                r += '  CAMPOS FORMULÁRIO:\\n';
+                pipe.start_form_fields.forEach(function(f) { r += '    • "' + f.label + '" [' + f.type + '] [ID: ' + f.id + ']\\n'; });
             }
             if (pipe._phaseFields) {
-                for (const [pname, fields] of Object.entries(pipe._phaseFields)) {
-                    r += `  CAMPOS FASE "${pname}":\n`;
-                    fields.forEach(f => r += `    • "${f.label}" [${f.type}] [ID: ${f.id}]\n`);
+                for (var pname in pipe._phaseFields) {
+                    r += '  CAMPOS FASE "' + pname + '":\\n';
+                    pipe._phaseFields[pname].forEach(function(f) { r += '    • "' + f.label + '" [' + f.type + '] [ID: ' + f.id + ']\\n'; });
                 }
             }
             if (pipe._sampleFields && pipe._sampleFields.length > 0) {
-                r += `  AMOSTRA VALORES:\n`;
-                pipe._sampleFields.forEach(f => {
-                    const v = f.value ? (f.value.length > 120 ? f.value.substring(0, 120) + '...' : f.value) : '(vazio)';
-                    r += `    • "${f.name}" = "${v}"\n`;
+                r += '  AMOSTRA VALORES:\\n';
+                pipe._sampleFields.forEach(function(f) {
+                    var v = f.value ? (f.value.length > 120 ? f.value.substring(0, 120) + '...' : f.value) : '(vazio)';
+                    r += '    • "' + f.name + '" = "' + v + '"\\n';
                 });
             }
-            r += '\n';
+            r += '\\n';
         });
     }
 
     if (siengeReport) {
-        r += '┌──────────────────────────────────────┐\n';
-        r += '│       SIENGE - ENDPOINTS (PROXY)     │\n';
-        r += '└──────────────────────────────────────┘\n\n';
+        r += '┌──────────────────────────────────────┐\\n';
+        r += '│       SIENGE - ENDPOINTS (PROXY)     │\\n';
+        r += '└──────────────────────────────────────┘\\n\\n';
 
         if (siengeReport.summary.authError === true) {
-            r += '⚠️ CREDENCIAIS INVÁLIDAS - Sienge rejeitou autenticação\n';
-            r += 'Usuário: engefy-dash\n';
-            r += 'Ação: Verificar/atualizar senha no Painel de Integrações do Sienge\n\n';
+            r += '⚠️ CREDENCIAIS INVÁLIDAS\\n\\n';
         } else {
-            r += `Acessíveis: ${siengeReport.summary.ok}\n`;
-            r += `Auth erro: ${siengeReport.summary.authError}\n`;
-            r += `Sem permissão: ${siengeReport.summary.forbidden}\n`;
-            r += `Não encontrados: ${siengeReport.summary.notFound}\n\n`;
+            r += 'Acessíveis: ' + siengeReport.summary.ok + '\\n';
+            r += 'Auth erro: ' + siengeReport.summary.authError + '\\n';
+            r += 'Sem permissão: ' + siengeReport.summary.forbidden + '\\n';
+            r += 'Não encontrados: ' + siengeReport.summary.notFound + '\\n\\n';
 
-            const ok = siengeReport.results.filter(r => r.status === 'ok');
+            var ok = siengeReport.results.filter(function(r) { return r.status === 'ok'; });
             if (ok.length > 0) {
-                r += `ENDPOINTS ACESSÍVEIS:\n`;
-                ok.forEach(ep => {
-                    r += `  ✅ ${ep.desc}: GET ${ep.path} (${ep.count} registros)\n`;
+                r += 'ENDPOINTS ACESSÍVEIS:\\n';
+                ok.forEach(function(ep) {
+                    r += '  ✅ ' + ep.desc + ': GET ' + ep.path + ' (' + ep.count + ' registros)\\n';
                     if (ep.sample) {
-                        r += `     Campos: ${Object.keys(ep.sample).join(', ')}\n`;
-                        const s = JSON.stringify(ep.sample);
-                        if (s.length < 400) r += `     Amostra: ${s}\n`;
+                        r += '     Campos: ' + Object.keys(ep.sample).join(', ') + '\\n';
+                        var s = JSON.stringify(ep.sample);
+                        if (s.length < 400) r += '     Amostra: ' + s + '\\n';
                     }
                 });
-                r += '\n';
+                r += '\\n';
             }
 
-            const forbidden = siengeReport.results.filter(r => r.status === 'forbidden');
+            var forbidden = siengeReport.results.filter(function(r) { return r.status === 'forbidden'; });
             if (forbidden.length > 0) {
-                r += `SEM PERMISSÃO:\n`;
-                forbidden.forEach(ep => r += `  🔒 ${ep.desc}: ${ep.path} → ${ep.httpStatus}\n`);
-                r += '\n';
+                r += 'SEM PERMISSÃO:\\n';
+                forbidden.forEach(function(ep) { r += '  🔒 ' + ep.desc + ': ' + ep.path + ' → ' + ep.httpStatus + '\\n'; });
+                r += '\\n';
             }
 
-            const notFound = siengeReport.results.filter(r => r.status === 'not_found');
+            var notFound = siengeReport.results.filter(function(r) { return r.status === 'not_found'; });
             if (notFound.length > 0) {
-                r += `NÃO ENCONTRADOS:\n`;
-                notFound.forEach(ep => r += `  ❌ ${ep.desc}: ${ep.path}\n`);
-                r += '\n';
+                r += 'NÃO ENCONTRADOS:\\n';
+                notFound.forEach(function(ep) { r += '  ❌ ' + ep.desc + ': ' + ep.path + '\\n'; });
+                r += '\\n';
             }
         }
     }
 
-    r += '══════════════════════════════════════════\n';
-    r += '  FIM DO RELATÓRIO\n';
-    r += '══════════════════════════════════════════\n';
+    r += '══════════════════════════════════════════\\n';
+    r += '  FIM DO RELATÓRIO\\n';
+    r += '══════════════════════════════════════════\\n';
 
     document.getElementById('reportText').textContent = r;
     document.getElementById('reportText').dataset.report = r;
 }
 
 function copyReport() {
-    const report = document.getElementById('reportText').dataset.report;
-    navigator.clipboard.writeText(report).then(() => {
-        const btn = document.querySelector('.copy-btn');
+    var report = document.getElementById('reportText').dataset.report;
+    navigator.clipboard.writeText(report).then(function() {
+        var btn = document.querySelector('.copy-btn');
         btn.textContent = '✅ COPIADO! Cole na conversa com o Claude';
-        setTimeout(() => { btn.textContent = '📋 COPIAR RELATÓRIO COMPLETO'; }, 3000);
+        setTimeout(function() { btn.textContent = '📋 COPIAR RELATÓRIO COMPLETO'; }, 3000);
     });
 }
 </script>
