@@ -2,5 +2,8 @@
   "name": "engefy-proxy",
   "version": "1.0.0",
   "description": "Proxy para APIs Sienge e Pipefy - Engefy Dashboard",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
 }
