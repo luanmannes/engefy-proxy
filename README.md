@@ -53,3 +53,18 @@ Acesse no navegador:
 https://SEU-SITE.netlify.app/.netlify/functions/sienge-proxy?endpoint=/building-projects&limit=1
 ```
 Se retornar JSON do Sienge, está funcionando!
+
+## Segredos (nunca no código: este repositório é público)
+
+Todas as credenciais ficam em **Netlify → Site configuration → Environment variables**
+(marcar como *secret*; escopo *Functions*):
+
+| Variável | Uso |
+|---|---|
+| `SIENGE_USER`, `SIENGE_PASS` | usuário de API do Sienge (`sienge-proxy`) |
+| `SIENGE_PROXY_ALLOW_WRITE` | `1` só se algum sistema precisar de POST/PUT/DELETE no Sienge (padrão: somente leitura) |
+| `PIPEFY_API_TOKEN` | token do Pipefy (`pipefy-proxy` e triagem IA) |
+| `PROXY_ACCESS_KEY` | chave que a página de descoberta pede para usar o `pipefy-proxy` |
+| demais da triagem | ver [TRIAGEM.md](TRIAGEM.md) |
+
+Depois de alterar uma variável, faça um novo deploy para as functions lerem o valor.

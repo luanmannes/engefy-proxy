@@ -1,11 +1,14 @@
 const SIENGE_BASE = 'https://api.sienge.com.br/engefy/public/api/v1';
 const SIENGE_BASE_ROOT = 'https://api.sienge.com.br/engefy/public/api';
-const SIENGE_USER = 'engefy-dash';
-const SIENGE_PASS = 'pQqQyZHTMCggkDe2CGauYPiLTL28CF15';
+// Credenciais no Netlify (Site settings → Environment variables), nunca no código.
+const SIENGE_USER = process.env.SIENGE_USER;
+const SIENGE_PASS = process.env.SIENGE_PASS;
+// Só leitura, salvo se SIENGE_PROXY_ALLOW_WRITE=1: o proxy é público.
+const ALLOW_WRITE = process.env.SIENGE_PROXY_ALLOW_WRITE === '1';
 
 const CORS_HEADERS = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': ALLOW_WRITE ? 'GET, POST, PUT, DELETE, OPTIONS' : 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Content-Type': 'application/json',
 };
@@ -13,6 +16,13 @@ const CORS_HEADERS = {
 exports.handler = async (event) => {
       if (event.httpMethod === 'OPTIONS') {
                 return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+      }
+
+      if (!ALLOW_WRITE && event.httpMethod !== 'GET') {
+                return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Proxy do Sienge é somente leitura' }) };
+      }
+      if (!SIENGE_USER || !SIENGE_PASS) {
+                return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: 'SIENGE_USER/SIENGE_PASS não configurados no Netlify' }) };
       }
 
       try {

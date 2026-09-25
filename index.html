@@ -90,7 +90,13 @@
     </div>
 
 <script>
-const PIPEFY_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJQaXBlZnkiLCJpYXQiOjE3NzA4MTY5OTYsImp0aSI6ImUyZWVlMjUxLTgzYzItNGU3ZC04OTFkLTBkZDZhNzM1ZjJhZCIsInN1YiI6MjQxNzA4LCJ1c2VyIjp7ImlkIjoyNDE3MDgsImVtYWlsIjoibHVhbm1hbm5lc0Bjb25zdHJ1dG9yYWVuZ2VmeS5jb20uYnIifSwidXNlcl90eXBlIjoiYXV0aGVudGljYXRlZCJ9.hSHH8ph-26_kViEdMZrrKj7tPrEvioADVdATYuFo0c_nb3ffD8G-luzd0luiAvDkPBQolawdS009s2PCVBpHcw';
+const PIPEFY_PROXY = '/.netlify/functions/pipefy-proxy';
+// Chave de acesso do proxy (PROXY_ACCESS_KEY no Netlify): digitada na hora, guardada só nesta aba.
+function proxyKey() {
+    let k = sessionStorage.getItem('proxyKey');
+    if (!k) { k = prompt('Chave de acesso do proxy do Pipefy:') || ''; sessionStorage.setItem('proxyKey', k); }
+    return k;
+}
 const PROXY_BASE = '/.netlify/functions/sienge-proxy';
 let pipefyReport = null;
 let siengeReport = null;
@@ -102,11 +108,12 @@ function logP(msg, cls = '') {
 }
 
 async function gql(query) {
-    const res = await fetch('https://api.pipefy.com/graphql', {
+    const res = await fetch(PIPEFY_PROXY, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${PIPEFY_TOKEN}`, 'Content-Type': 'application/json' },
+        headers: { 'x-proxy-key': proxyKey(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ query })
     });
+    if (res.status === 401) sessionStorage.removeItem('proxyKey');
     return await res.json();
 }
 
@@ -324,7 +331,7 @@ async function scanSienge() {
         if (t.status === 401 || (tData && tData.message && tData.message.includes('authentication'))) {
             logS('\\n⚠️ CREDENCIAIS DO SIENGE INVÁLIDAS!', 'err');
             logS('Verifique no Sienge → Painel de Integrações', 'err');
-            logS('Atualize a senha no sienge-proxy.js no GitHub', 'warn');
+            logS('Configure SIENGE_USER e SIENGE_PASS nas variáveis de ambiente do Netlify', 'warn');
             siengeReport = { results: [], summary: { ok: 0, authError: true } };
             dot.className = 'dot fail';
             btn.textContent = '🔒 Credenciais inválidas';
