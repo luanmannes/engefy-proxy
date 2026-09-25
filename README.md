@@ -8,8 +8,14 @@ engefy-proxy/
 ├── package.json                        ← Metadados
 └── netlify/
     └── functions/
-        └── sienge-proxy.js             ← Proxy serverless para Sienge
+        ├── sienge-proxy.js             ← Proxy serverless para Sienge
+        ├── saving-cache.js             ← Cache do dashboard (Reunião Saving)
+        ├── dashboard-cache.mts         ← Snapshot do dashboard para a triagem IA
+        ├── triagem-background.mts      ← Triagem de oportunidades por IA (webhook Pipefy)
+        └── triagem-varredura.mts       ← Varredura agendada da fase Triagem
 ```
+
+Triagem por IA: ver [TRIAGEM.md](TRIAGEM.md).
 
 ## Como fazer deploy
 
